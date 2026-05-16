@@ -754,26 +754,26 @@ with tab2:
                     df_cf_disp[col] = df_cf_disp[col].apply(lambda x: f"{_n(x, 2)}")
             st.dataframe(df_cf_disp, use_container_width=True, hide_index=True)
 
-            # — График СДП по годам —
-            cfs_vals = r["cfs"]
-            fig_cf = go.Figure(go.Bar(
-                x=[f"Год {t}" for t in range(1, r["years"] + 1)],
-                y=cfs_vals,
-                marker_color=[
-                    COLORS[i % len(COLORS)] if v >= 0 else "#c4907a"
-                    for v in cfs_vals
-                ],
-                text=[f"{_n(v, 0)}" for v in cfs_vals],
-                textposition="outside",
-            ))
-            fig_cf.update_layout(
-                title="Свободные денежные потоки (СДП) по годам", #Чистая прибыль (СДП) по годам
-                height=280, margin=dict(t=40, b=10),
-                plot_bgcolor="white",
-                yaxis=dict(title="СДП, Р", gridcolor="#eee"),
-                showlegend=False,
-            )
-            st.plotly_chart(fig_cf, use_container_width=True, key=f"fig_cf_{i}")
+#             # — График СДП по годам —
+#             cfs_vals = r["cfs"]
+#             fig_cf = go.Figure(go.Bar(
+#                 x=[f"Год {t}" for t in range(1, r["years"] + 1)],
+#                 y=cfs_vals,
+#                 marker_color=[
+#                     COLORS[i % len(COLORS)] if v >= 0 else "#c4907a"
+#                     for v in cfs_vals
+#                 ],
+#                 text=[f"{_n(v, 0)}" for v in cfs_vals],
+#                 textposition="outside",
+#             ))
+#             fig_cf.update_layout(
+#                 title="Свободные денежные потоки (СДП) по годам", #Чистая прибыль (СДП) по годам
+#                 height=280, margin=dict(t=40, b=10),
+#                 plot_bgcolor="white",
+#                 yaxis=dict(title="СДП, Р", gridcolor="#eee"),
+#                 showlegend=False,
+#             )
+#             st.plotly_chart(fig_cf, use_container_width=True, key=f"fig_cf_{i}")
 
             # — График накопленного дисконтированного ДДП —
             rate_dec = p["rate"] / 100
@@ -1298,10 +1298,10 @@ with tab4:
     # ══════════════════════════════════════════
     st.markdown('<div class="section-header">1. Анализ чувствительности NPV</div>',
                 unsafe_allow_html=True)
-    st.markdown(
-        "Каждый параметр отклоняется от базового значения в диапазоне **−40% … +40%**, "
-        "остальные параметры фиксированы. График показывает реакцию NPV."
-    )
+#     st.markdown(
+#         "Каждый параметр отклоняется от базового значения в диапазоне **−40% … +40%**, "
+#         "остальные параметры фиксированы. График показывает реакцию NPV."
+#     )
 
     # Параметры для анализа чувствительности
     sens_params = {
@@ -1330,37 +1330,37 @@ with tab4:
             npv_series.append(calc_npv(cfs_mod, p_mod["invest"], p_mod["rate"]))
         sens_data[label] = npv_series
 
-    # ── «Паутинный» график чувствительности ──
-    fig_sens = go.Figure()
-    palette  = px.colors.qualitative.Bold
-
-    for idx, (label, npv_series) in enumerate(sens_data.items()):
-        fig_sens.add_trace(go.Scatter(
-            x=deviations,
-            y=npv_series,
-            mode="lines",
-            name=label,
-            line=dict(color=palette[idx % len(palette)], width=2),
-        ))
-
-    fig_sens.add_hline(y=0,   line_dash="dash", line_color="black",  line_width=1.2,
-                       annotation_text="NPV=0", annotation_position="right")
-    fig_sens.add_vline(x=0,   line_dash="dot",  line_color="#999",   line_width=1)
-    fig_sens.add_hline(y=sel_r["npv"], line_dash="dot", line_color="#c8773a", line_width=1,
-                       annotation_text=f"Базовый NPV={_n(sel_r['npv'], 0)}",
-                       annotation_position="right")
-
-    fig_sens.update_layout(
-        title=f"Чувствительность NPV к параметрам — {sel_name}",
-        height=440,
-        margin=dict(t=50, b=20),
-        plot_bgcolor="white",
-        xaxis=dict(title="Отклонение параметра, %", gridcolor="#eee", zeroline=False),
-        yaxis=dict(title="NPV, Р", gridcolor="#eee"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        hovermode="x unified",
-    )
-    st.plotly_chart(fig_sens, use_container_width=True, key="fig_sens")
+#     # ── «Паутинный» график чувствительности ──
+#     fig_sens = go.Figure()
+#     palette  = px.colors.qualitative.Bold
+#
+#     for idx, (label, npv_series) in enumerate(sens_data.items()):
+#         fig_sens.add_trace(go.Scatter(
+#             x=deviations,
+#             y=npv_series,
+#             mode="lines",
+#             name=label,
+#             line=dict(color=palette[idx % len(palette)], width=2),
+#         ))
+#
+#     fig_sens.add_hline(y=0,   line_dash="dash", line_color="black",  line_width=1.2,
+#                        annotation_text="NPV=0", annotation_position="right")
+#     fig_sens.add_vline(x=0,   line_dash="dot",  line_color="#999",   line_width=1)
+#     fig_sens.add_hline(y=sel_r["npv"], line_dash="dot", line_color="#c8773a", line_width=1,
+#                        annotation_text=f"Базовый NPV={_n(sel_r['npv'], 0)}",
+#                        annotation_position="right")
+#
+#     fig_sens.update_layout(
+#         title=f"Чувствительность NPV к параметрам — {sel_name}",
+#         height=440,
+#         margin=dict(t=50, b=20),
+#         plot_bgcolor="white",
+#         xaxis=dict(title="Отклонение параметра, %", gridcolor="#eee", zeroline=False),
+#         yaxis=dict(title="NPV, Р", gridcolor="#eee"),
+#         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+#         hovermode="x unified",
+#     )
+#     st.plotly_chart(fig_sens, use_container_width=True, key="fig_sens")
 
     # ── Таблица эластичности NPV ──────────────
     st.markdown("**Эластичность NPV по каждому параметру**")
@@ -1419,7 +1419,7 @@ with tab4:
     st.dataframe(df_elast, use_container_width=True, hide_index=True)
 
     # ── Tornado chart ─────────────────────────
-    st.markdown("**Диаграмма Торнадо ()влияние параметров на NPV при отклонении ±20%)**")
+    st.markdown("**Диаграмма Торнадо (влияние параметров на NPV при отклонении ±20%)**")
 
     tornado_rows = []
     for label, key in sens_params.items():
