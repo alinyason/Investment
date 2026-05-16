@@ -1,4 +1,3 @@
-
 import streamlit as st #основа веб интерфейса
 import pandas as pd #для работы с табличными данными (загрузка, группировка и анализ данных)
 import plotly.graph_objects as go #для создания интерактивных графиков (низкоуровневый интерфейс)
@@ -1415,62 +1414,16 @@ with tab4:
             "Риск":               risk,
         })
 
-    df_elast = pd.DataFrame(elast_rows)
+    # Сортируем по убыванию |эластичности| — самые рискованные параметры наверху
+    def _elast_sort_key(row):
+        try:
+            return abs(float(row["Эластичность NPV"]))
+        except (ValueError, TypeError):
+            return 0.0
+
+    elast_rows_sorted = sorted(elast_rows, key=_elast_sort_key, reverse=True)
+    df_elast = pd.DataFrame(elast_rows_sorted)
     st.dataframe(df_elast, use_container_width=True, hide_index=True)
-
-    # ── Tornado chart ─────────────────────────
-    st.markdown("**Диаграмма Торнадо (влияние параметров на NPV при отклонении ±20%)**")
-
-    tornado_rows = []
-    for label, key in sens_params.items():
-        p_lo = dict(sel_p); p_lo[key] = sel_p[key] * 0.80
-        p_hi = dict(sel_p); p_hi[key] = sel_p[key] * 1.20
-        for k in ("rate", "inflation", "tax"):
-            p_lo[k] = max(p_lo.get(k, sel_p[k]), 0.01)
-            p_hi[k] = max(p_hi.get(k, sel_p[k]), 0.01)
-        npv_lo = calc_npv(build_cash_flows(p_lo), p_lo["invest"], p_lo["rate"])
-        npv_hi = calc_npv(build_cash_flows(p_hi), p_hi["invest"], p_hi["rate"])
-        swing  = abs(npv_hi - npv_lo)
-        tornado_rows.append((label, npv_lo, npv_hi, swing))
-
-    tornado_rows.sort(key=lambda x: x[3])   # сортируем по swing
-
-    fig_torn = go.Figure()
-    for label, npv_lo, npv_hi, _ in tornado_rows:
-        lo_val = min(npv_lo, npv_hi) - base_npv
-        hi_val = max(npv_lo, npv_hi) - base_npv
-        fig_torn.add_trace(go.Bar(
-            name=label,
-            y=[label],
-            x=[lo_val],
-            base=base_npv,
-            orientation="h",
-            marker_color="#c4907a",
-            showlegend=False,
-            hovertemplate=f"{label}<br>−20%: {_n(npv_lo, 0)} Р<extra></extra>",
-        ))
-        fig_torn.add_trace(go.Bar(
-            name=label,
-            y=[label],
-            x=[hi_val],
-            base=base_npv,
-            orientation="h",
-            marker_color="#7a9fc0",
-            showlegend=False,
-            hovertemplate=f"{label}<br>+20%: {_n(npv_hi, 0)} Р<extra></extra>",
-        ))
-
-    fig_torn.add_vline(x=base_npv, line_dash="dash", line_color="#c8773a", line_width=2,
-                       annotation_text=f"Базовый NPV", annotation_position="top")
-    fig_torn.update_layout(
-        barmode="overlay",
-        title="Диаграмма Торнадо (красный = −20%, синий = +20%)",
-        height=380, margin=dict(t=50, b=20, l=20),
-        plot_bgcolor="white",
-        xaxis=dict(title="NPV, Р", gridcolor="#eee"),
-        yaxis=dict(title=""),
-    )
-    st.plotly_chart(fig_torn, use_container_width=True, key="fig_torn")
 
     st.divider()
 
