@@ -830,7 +830,7 @@ with tab2:
                 )
                 fig_bep.update_layout(
                     title="График безубыточности",
-                    height=300, margin=dict(t=40, b=10),
+                    height=300, margin=dict(t=60, b=10),
                     plot_bgcolor="white",
                     yaxis=dict(title="Руб.", gridcolor="#eee"),
                     xaxis=dict(title="Объём, ед."),
