@@ -371,6 +371,21 @@ def calc_pi(cfs: list, invest: float, rate_pct: float) -> float: #функция
     return round(pv / invest, 3)
 
 
+def calc_eaa(npv: float, rate_pct: float, years: int) -> float:
+    """
+    Эквивалентный аннуитет (EAA) — NPV, пересчитанный в среднегодовой эквивалент.
+    Позволяет сравнивать проекты с разными сроками реализации.
+    EAA = NPV * r / (1 - (1+r)^-n)
+    """
+    if years <= 0:
+        return 0.0
+    r = rate_pct / 100
+    if r == 0:
+        return round(npv / years, 2)
+    annuity_factor = r / (1 - (1 + r) ** (-years))
+    return round(npv * annuity_factor, 2)
+
+
 def calc_dpp(cfs: list, invest: float, rate_pct: float): #функция расчёта DPP
     r          = rate_pct / 100
     cumulative = 0.0 #накопленная сумма дисконтированных потоков
@@ -617,14 +632,18 @@ with tab2:
                 unsafe_allow_html=True)
 
     rows = []
+    all_years_tab2 = [r["years"] for r in results]
+    show_eaa_tab2  = len(set(all_years_tab2)) > 1
+
     for r in results:
         irr_s = f"{r['irr']:.2f}%"  if r["irr"] is not None else "н/д"
         dpp_s = f"{r['dpp']:.2f} л" if r["dpp"] is not None else "не окупается"
         pp_s  = f"{r['pp']:.2f} л"  if r["pp"]  is not None else "не окупается"
         bep_s = f"{_n(r['bep'], 0)}"  if r["bep"] != float("inf") else "∞"
         eff   = (r["npv"] >= 0) and (r["pi"] >= 1)
-        rows.append({
+        row = {
             "Проект":    r["name"],
+            "Срок, лет": r["years"],
             "NPV, Р": r["npv"],
             "IRR":       irr_s,
             "PI":        r["pi"],
@@ -632,7 +651,10 @@ with tab2:
             "DPP, лет":  dpp_s,
             "BEP, ед.":  bep_s,
             "Вывод":     "Эффективен" if eff else "Не эффективен",
-        })
+        }
+        if show_eaa_tab2:
+            row["EAA, Р/год"] = calc_eaa(r["npv"], r["params"]["rate"], r["years"])
+        rows.append(row)
 
     df_sum = pd.DataFrame(rows)
 
@@ -642,13 +664,17 @@ with tab2:
     def style_pi(v):
         return "color:#1e3a5f;font-weight:600" if v >= 1 else "color:#a03020;font-weight:600"
 
+    fmt_dict = {"NPV, Р": lambda v: _n(v, 0), "PI": "{:.3f}"}
+    if show_eaa_tab2:
+        fmt_dict["EAA, Р/год"] = lambda v: _n(v, 0)
+
     try:
         # pandas >= 2.1
         styled = (
             df_sum.style
             .map(style_npv, subset=["NPV, Р"])
             .map(style_pi,  subset=["PI"])
-            .format({"NPV, Р": lambda v: _n(v, 0), "PI": "{:.3f}"})
+            .format(fmt_dict)
         )
     except AttributeError:
         # pandas < 2.1
@@ -656,9 +682,14 @@ with tab2:
             df_sum.style
             .applymap(style_npv, subset=["NPV, Р"])
             .applymap(style_pi,  subset=["PI"])
-            .format({"NPV, Р": lambda v: _n(v, 0), "PI": "{:.3f}"})
+            .format(fmt_dict)
         )
 
+    if show_eaa_tab2:
+        st.caption(
+            "Сроки проектов различаются — добавлен столбец **EAA** (эквивалентный аннуитет). "
+            "Для корректного сравнения проектов разной длительности ориентируйтесь на EAA, а не только на NPV."
+        )
     st.dataframe(styled, use_container_width=True, hide_index=True)
 
     # ── 2.2 Сравнительный график NPV ──────────
@@ -983,6 +1014,36 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
                     )
                     st.rerun()
 
+    # ── Флажок EAA — показывается только если сроки разные ──────────────
+    all_years_lp = [p["years"] for p in st.session_state.projects]
+    years_differ = len(set(all_years_lp)) > 1
+
+    use_eaa = False
+    if years_differ:
+        unique_years = sorted(set(all_years_lp))
+        st.markdown('<div class="section-header">Целевая функция</div>',
+                    unsafe_allow_html=True)
+        use_eaa = st.checkbox(
+            "Использовать EAA вместо NPV в целевой функции",
+            value=False,
+            help=(
+                "EAA (эквивалентный аннуитет) = NPV · r / (1 − (1+r)^−n). "
+                "Пересчитывает NPV в среднегодовой эквивалент, что позволяет "
+                "корректно сравнивать проекты с разными сроками реализации."
+            )
+        )
+        if use_eaa:
+            st.caption(
+                f"Сроки проектов различаются ({', '.join(str(y) for y in unique_years)} лет) — "
+                f"целевая функция будет максимизировать суммарный **EAA**, а не NPV."
+            )
+        else:
+            st.caption(
+                f"Сроки проектов различаются ({', '.join(str(y) for y in unique_years)} лет). "
+                f"Сейчас целевая функция максимизирует суммарный **NPV** — "
+                f"это допущение модели. Включите EAA для корректного сравнения."
+            )
+
     run_lp = st.button("Решить задачу оптимизации", type="primary")
 
     if run_lp:
@@ -1009,8 +1070,16 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
             for i, r in enumerate(candidates)
         }
 
-        # Целевая функция: max sum(NPV_i * x_i)
-        prob += pulp.lpSum(r["npv"] * x[r["name"]] for r in candidates), "TotalNPV"
+        # Целевая функция: max sum(NPV_i * x_i) или max sum(EAA_i * x_i)
+        if use_eaa:
+            obj_values = {
+                r["name"]: calc_eaa(r["npv"], r["params"]["rate"], r["years"])
+                for r in candidates
+            }
+            prob += pulp.lpSum(obj_values[r["name"]] * x[r["name"]] for r in candidates), "TotalEAA"
+        else:
+            obj_values = {r["name"]: r["npv"] for r in candidates}
+            prob += pulp.lpSum(r["npv"] * x[r["name"]] for r in candidates), "TotalNPV"
 
         # Ограничение 1: бюджет
         prob += (
@@ -1066,14 +1135,20 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
             selected   = [r for r in candidates if pulp.value(x[r["name"]]) == 1]
             rejected   = [r for r in results_lp if r not in selected]
             total_npv  = sum(r["npv"]    for r in selected)
+            total_eaa  = sum(calc_eaa(r["npv"], r["params"]["rate"], r["years"]) for r in selected)
             total_inv  = sum(r["invest"] for r in selected)
             budget_use = total_inv / total_budget * 100 if total_budget > 0 else 0
 
             # Метрики портфеля
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Проектов в портфеле", len(selected))
-            m2.metric("Суммарный NPV",  f"{_n(total_npv, 0)} Р",
-                      delta="максимально возможный")
+            if use_eaa:
+                m2.metric("Суммарный EAA", f"{_n(total_eaa, 0)} Р/год",
+                          delta="максимально возможный")
+                m2b_col = st.columns(4)[1]
+            else:
+                m2.metric("Суммарный NPV", f"{_n(total_npv, 0)} Р",
+                          delta="максимально возможный")
             m3.metric("Использовано бюджета", f"{_n(total_inv, 0)} Р")
             m4.metric("Загрузка бюджета", f"{budget_use:.1f}%")
 
@@ -1082,17 +1157,33 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
             # Таблица выбранных проектов
             st.markdown("####  Проекты, включённые в портфель")
             if selected:
+                # Проверяем — разные ли сроки у проектов-кандидатов
+                all_years = [r["years"] for r in candidates]
+                show_eaa  = len(set(all_years)) > 1  # True если сроки отличаются
+
                 rows_sel = []
                 for r in selected:
                     irr_s = f"{r['irr']:.2f}%" if r["irr"] is not None else "н/д"
-                    rows_sel.append({
+                    row = {
                         "Проект":        r["name"],
+                        "Срок, лет":     r["years"],
                         "Инвестиции, Р": f"{_n(r['invest'], 0)}",
                         "NPV, Р":        f"{_n(r['npv'], 0)}",
                         "IRR":           irr_s,
                         "PI":            f"{r['pi']:.3f}",
                         "Доля бюджета":  f"{r['invest']/total_budget*100:.1f}%",
-                    })
+                    }
+                    if show_eaa:
+                        eaa = calc_eaa(r["npv"], r["params"]["rate"], r["years"])
+                        row["EAA, Р/год"] = f"{_n(eaa, 0)}"
+                    rows_sel.append(row)
+
+                if show_eaa:
+                    st.caption(
+                        "Сроки проектов различаются — добавлен столбец **EAA** "
+                        "(эквивалентный аннуитет): NPV, пересчитанный в среднегодовой "
+                        "эквивалент. Позволяет корректно сравнивать проекты разной длительности."
+                    )
                 st.dataframe(pd.DataFrame(rows_sel),
                              use_container_width=True, hide_index=True)
             else:
@@ -1201,11 +1292,12 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
                         unsafe_allow_html=True)
 
             lp_lines = ["**Целевая функция:**"]
+            obj_label = "EAA" if use_eaa else "NPV"
             terms = " + ".join(
-                f"{_n(r['npv'], 0)}·x_{i+1}"
+                f"{_n(obj_values[r['name']], 0)}·x_{i+1}"
                 for i, r in enumerate(candidates)
             )
-            lp_lines.append(f"max Z = {terms}")
+            lp_lines.append(f"max Z = {terms}  ({obj_label})")
             lp_lines.append("")
             lp_lines.append("**Ограничения:**")
             budget_terms = " + ".join(
@@ -1237,7 +1329,10 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
                 val = int(pulp.value(x[r["name"]]))
                 lp_lines.append(f"x_{i+1} ({r['name']}) = {val}")
             lp_lines.append(f"")
-            lp_lines.append(f"**Оптимальное значение Z = {_n(total_npv, 0)} Р**")
+            if use_eaa:
+                lp_lines.append(f"**Оптимальное значение Z = {_n(total_eaa, 0)} Р/год  (суммарный EAA)**")
+            else:
+                lp_lines.append(f"**Оптимальное значение Z = {_n(total_npv, 0)} Р  (суммарный NPV)**")
 
             st.markdown(
                 '<div class="formula-box">' +
@@ -1247,16 +1342,23 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
             )
 
             # ── Вывод ─────────────────────────
-            advice_lp = (
-                f" Оптимальный портфель из {len(selected)} проекта(ов) "
-                f"({', '.join(r['name'] for r in selected)}) обеспечивает "
-                f"максимальный суммарный NPV = {_n(total_npv, 0)} Р "
-                f"при бюджете {_n(total_budget, 0)} Р. "
-                f"Загрузка бюджета: {budget_use:.1f}%."
-            ) if selected else (
-                " При заданных ограничениях ни один проект не может быть включён в портфель. "
-                "Увеличьте бюджет или снимите дополнительные ограничения."
-            )
+            if selected:
+                if use_eaa:
+                    obj_str = f"суммарный EAA = {_n(total_eaa, 0)} Р/год"
+                else:
+                    obj_str = f"суммарный NPV = {_n(total_npv, 0)} Р"
+                advice_lp = (
+                    f"Оптимальный портфель из {len(selected)} проекта(ов) "
+                    f"({', '.join(r['name'] for r in selected)}) обеспечивает "
+                    f"максимальный {obj_str} "
+                    f"при бюджете {_n(total_budget, 0)} Р. "
+                    f"Загрузка бюджета: {budget_use:.1f}%."
+                )
+            else:
+                advice_lp = (
+                    "При заданных ограничениях ни один проект не может быть включён в портфель. "
+                    "Увеличьте бюджет или снимите дополнительные ограничения."
+                )
             css_lp = "advice-box good" if selected else "advice-box"
             st.markdown(f'<div class="{css_lp}">{advice_lp}</div>',
                         unsafe_allow_html=True)
