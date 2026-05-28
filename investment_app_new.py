@@ -303,9 +303,10 @@ def build_cf_table(p: dict) -> pd.DataFrame:
     """
     rows = [] #в этот список будут добавляться строки будущей таблицы
     inf = p["inflation"] / 100 #инфляция
+    r_dec = p["rate"] / 100 #дисконт
     tax = p["tax"] / 100 #налог на прибыль
     for t in range(1, p["years"] + 1): #цикл по годам
-        factor     = (1 + inf) ** t #дисконт
+        factor     = (1 + inf) ** t #влияние инфляции
         revenue    = p["volume"] * p["price"] * factor #выручка в году t
         var_costs  = p["volume"] * p["var_cost"] * factor #переменные издержки
         fixed      = p["fixed_cost"] * factor #постоянные издержки
@@ -314,7 +315,7 @@ def build_cf_table(p: dict) -> pd.DataFrame:
         tax_amount = taxable_profit * tax if taxable_profit > 0 else 0.0 #налог
         net_profit        = taxable_profit - tax_amount #было net, это чистая прибыль
         cash_flow = net_profit + amort #свободные денежные потоки
-        discounted_cf = cash_flow/factor #дискотированный денежный поток
+        discounted_cf = cash_flow/ ((1+r_dec)**t) #дискотированный денежный поток
         rows.append({
             "Год":               t,
             "Выручка":           round(revenue, 2),
