@@ -1,6 +1,6 @@
 import streamlit as st #основа веб интерфейса
 import pandas as pd #для работы с табличными данными (загрузка, группировка и анализ данных)
-import plotly.graph_objects as go #для создания интерактивных графиков (низкоуровневый интерфейс)
+import plotly.graph_objects as go #для создания интерактивных графиков 
 import plotly.express as px #высокоуровый интерфйес обёртка для прошлой библиотеки
 
 def _n(value, decimals=0):
@@ -18,18 +18,17 @@ try:
 except ImportError:
     PULP_AVAILABLE = False
 
-# ─────────────────────────────────────────────
 # Конфигурация страницы
-# ─────────────────────────────────────────────
+
 st.set_page_config( #название вкладки
     page_title="Инвестиционный анализ",
     page_icon="📋",
     layout="wide", #сайт во всю ширь
 )
 
-# ─────────────────────────────────────────────
+# *******************************************
 # Стили #внедрение CSS через markdown
-# ─────────────────────────────────────────────
+# *******************************************
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap');
@@ -50,7 +49,7 @@ st.markdown("""
         --bad-text:      #6a1f1f;
     }
 
-    /* Шрифт — точечно по контентным элементам, не трогая служебные */
+    /* Шрифт */
     body, button, input, select, textarea,
     h1, h2, h3, h4, h5, h6, p, label, caption,
     [data-testid="stMarkdownContainer"] *,
@@ -78,12 +77,12 @@ st.markdown("""
     [data-testid="stExpanderToggleIcon"] * {
         font-family: inherit;
     }
-    /* Скрываем артефакт .arrow_down который наползает на текст */
+    /* скрыть артефакт .arrow_down который наползает на текст */
     [data-testid="stExpander"] summary::before,
     [data-testid="stExpander"] summary::after {
         display: none !important;
     }
-    /* Expander summary — выравнивание чтобы иконка не перекрывала текст */
+    /* Expander summary  выравнивание чтобы иконка не перекрывала текст */
     [data-testid="stExpander"] summary {
         display: flex !important;
         align-items: center !important;
@@ -93,7 +92,7 @@ st.markdown("""
         position: static !important;
     }
 
-    /* Фон приложения — сливочный */
+    /* Фон сливочный */
     [data-testid="stAppViewContainer"],
     [data-testid="stAppViewContainer"] > .main,
     [data-testid="block-container"],
@@ -280,10 +279,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-# ─────────────────────────────────────────────
 # Инициализация состояния сессии
-# ─────────────────────────────────────────────
+
 if "projects"     not in st.session_state: st.session_state.projects     = []
 if "calculated"   not in st.session_state: st.session_state.calculated   = False
 if "mutex_groups" not in st.session_state: st.session_state.mutex_groups = [] #группы взаимоисключающих проектов
@@ -292,13 +289,13 @@ if "mutex_groups" not in st.session_state: st.session_state.mutex_groups = [] #�
 COLORS = ["#1e3a5f", "#c8773a", "#4a6fa5", "#8b4f2a", "#6a8fb5", "#a05a20", "#2a5a8a", "#d4954a"]
 
 
-# ═════════════════════════════════════════════
-# РАСЧЁТНЫЕ ФУНКЦИИ
-# ═════════════════════════════════════════════
-#сделать таблицу чтобы она выводилась
+
+# расчётные функции
+#
+#таблица чтобы она выводилась
 def build_cf_table(p: dict) -> pd.DataFrame:
     """
-    Строит детальную таблицу денежных потоков по годам.
+    Строим детальную таблицу денежных потоков по годам.
     Выручка, переменные и постоянные издержки, прибыль, налог, СДП.
     """
     rows = [] #в этот список будут добавляться строки будущей таблицы
@@ -372,11 +369,9 @@ def calc_pi(cfs: list, invest: float, rate_pct: float) -> float: #функция
 
 
 def calc_eaa(npv: float, rate_pct: float, years: int) -> float:
-    """
-    Эквивалентный аннуитет (EAA) — NPV, пересчитанный в среднегодовой эквивалент.
-    Позволяет сравнивать проекты с разными сроками реализации.
-    EAA = NPV * r / (1 - (1+r)^-n)
-    """
+
+    #EAA = NPV * r / (1 - (1+r)^-n)
+
     if years <= 0:
         return 0.0
     r = rate_pct / 100
@@ -399,7 +394,7 @@ def calc_dpp(cfs: list, invest: float, rate_pct: float): #функция рас�
 
 
 def calc_pp(cfs: list, invest: float): #функция расчёта PP
-    """Простой (недисконтированный) срок окупаемости."""
+    #Простой срок окупаемости.
     cumulative = 0.0
     for t, cf in enumerate(cfs, start=1):
         prev       = cumulative
@@ -487,9 +482,7 @@ def compute_all(projects: list) -> list: #для анализа всех про�
     return results # список словарей с результатами всех проектов
 
 
-# ═════════════════════════════════════════════
-# ТОЧКА ВХОДА — ЗАГОЛОВОК И ВКЛАДКИ
-# ═════════════════════════════════════════════
+# заголовок со вкладками
 st.title("Анализ инвестиционных проектов")
 st.caption("Экономическая оценка · моделирование денежных потоков · показатели эффективности")
 
@@ -501,9 +494,9 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 
-# ═════════════════════════════════════════════
-# ВКЛАДКА 1 — ВВОД ПРОЕКТОВ
-# ═════════════════════════════════════════════
+# **********************************************
+# 1 вкладка ввод проектов
+# **********************************************
 with tab1:
     st.subheader("Добавление инвестиционных проектов")
     st.markdown("Введите параметры каждого проекта. Можно добавить до **20 проектов** для сравнения.")
@@ -580,7 +573,7 @@ with tab1:
                 st.session_state.calculated = False
                 st.rerun()
 
-            # — Форма редактирования проекта —
+            # Форма редактирования проекта 
             if st.session_state.get(f"editing_{idx}", False):
                 with st.container():
                     st.markdown(f"**Редактирование: {p['name']}**")
@@ -617,9 +610,9 @@ with tab1:
         st.info("Добавьте хотя бы один проект для начала анализа.")
 
 
-# ═════════════════════════════════════════════
-# ВКЛАДКА 2 — ПОКАЗАТЕЛИ ЭФФЕКТИВНОСТИ
-# ═════════════════════════════════════════════
+# **********************************************
+# 2 вкладка показатели эффективности
+# **********************************************
 with tab2:
     if not st.session_state.calculated or not st.session_state.projects:
         st.info("Сначала добавьте проекты и нажмите «Рассчитать» на вкладке ввода.")
@@ -627,7 +620,7 @@ with tab2:
 
     results = compute_all(st.session_state.projects)
 
-    # ── 2.1 Сводная таблица ───────────────────
+    #2.1 Сводная таблица 
     st.markdown('<div class="section-header">Сводная таблица показателей эффективности</div>',
                 unsafe_allow_html=True)
 
@@ -692,7 +685,7 @@ with tab2:
         )
     st.dataframe(styled, use_container_width=True, hide_index=True)
 
-    # ── 2.2 Сравнительный график NPV ──────────
+    #  2.2 Сравнительный график NPV 
     st.markdown('<div class="section-header">Сравнение NPV по проектам</div>',
                 unsafe_allow_html=True)
 
@@ -712,7 +705,7 @@ with tab2:
     )
     st.plotly_chart(fig_npv, use_container_width=True, key="fig_npv_main")
 
-    # ── 2.3 Детальный разбор по каждому проекту ─
+    #2.3 Детальный разбор по каждому проекту 
     st.markdown('<div class="section-header">Детальный разбор по каждому проекту</div>',
                 unsafe_allow_html=True)
 
@@ -720,7 +713,7 @@ with tab2:
         p = r["params"]
         with st.expander(f"{r['name']}", expanded=(i == 0)):
 
-            # — Формулы с подстановкой чисел —
+            #  Формулы с подстановкой чисел 
             st.markdown("**Применяемые формулы и расчёт**")
             r_dec   = p["rate"] / 100
             irr_str = f"{r['irr']:.2f}%" if r["irr"] is not None else "не определена"
@@ -730,7 +723,7 @@ with tab2:
                 for t, cf in enumerate(r["cfs"], start=1)
             )
 
-            # — Вывод по критериям —
+            # Вывод по критериям 
             st.markdown("**Оценка по критериям**")
             rate     = p["rate"]
             irr_val  = r["irr"] if r["irr"] is not None else 0
@@ -763,7 +756,7 @@ with tab2:
                 )
             st.markdown(html_crit, unsafe_allow_html=True)
 
-            # — Таблица СДП по годам —
+            # Таблица СДП по годам 
             st.markdown("**Таблица свободных денежных потоков по годам**") #свободные СДП
             df_cf_disp = r["df_cf"].copy()
             for col in df_cf_disp.columns:
@@ -771,7 +764,7 @@ with tab2:
                     df_cf_disp[col] = df_cf_disp[col].apply(lambda x: f"{_n(x, 2)}")
             st.dataframe(df_cf_disp, use_container_width=True, hide_index=True)
 
-            # — График накопленного дисконтированного ДДП —
+            #График накопленного дисконтированного ДДП
             rate_dec = p["rate"] / 100
             cum = [-p["invest"]]
             for t, cf in enumerate(r["cfs"], start=1):
@@ -799,7 +792,7 @@ with tab2:
             )
             st.plotly_chart(fig_cum, use_container_width=True, key=f"fig_cum_{i}")
 
-            # — График BEP —
+            # График BEP 
             if r["bep"] != float("inf"):
                 q_max      = max(p["volume"] * 1.5, r["bep"] * 1.5, 1)
                 q_range    = [q_max * j / 100 for j in range(101)]
@@ -843,9 +836,9 @@ with tab2:
             )
 
 
-# ═════════════════════════════════════════════
-# ВКЛАДКА 3 — ОПТИМАЛЬНЫЙ ПОРТФЕЛЬ (ЛП)
-# ═════════════════════════════════════════════
+# ***********************************************
+# 3 вкладка оптимальный портфель
+# ***********************************************
 with tab3:
     if not st.session_state.calculated or not st.session_state.projects:
         st.info("Сначала добавьте проекты и нажмите «Рассчитать» на вкладке ввода.")
@@ -862,7 +855,7 @@ with tab3:
 
     st.subheader("Формирование оптимального инвестиционного портфеля")
 
-    # ── Постановка задачи ─────────────────────
+    #  Постановка задачи 
     st.markdown('<div class="section-header">Постановка задачи линейного программирования</div>',
                 unsafe_allow_html=True)
 
@@ -878,7 +871,7 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
 - Взаимоисключение (опционально): $x_s + \\ldots + x_k = 1$ — из группы взаимоисключающих проектов реализуется ровно один
 """)
 
-    # ── Параметры задачи ──────────────────────
+    # Параметры задачи 
     st.markdown('<div class="section-header">Параметры оптимизации</div>',
                 unsafe_allow_html=True)
 
@@ -920,7 +913,7 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
             help="Ограничение на количество одновременно реализуемых проектов"
         )
 
-    # ── Ограничение: взаимоисключающие проекты ───────────────────────────
+    # Ограничение: взаимоисключающие проекты 
     st.markdown('<div class="section-header">Взаимоисключающие проекты (опционально)</div>',
                 unsafe_allow_html=True)
     st.markdown(
@@ -979,7 +972,7 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
                     )
                     st.rerun()
 
-    # ── Флажок EAA — показывается только если сроки разные ──────────────
+    # Флажок EAA — показывается только если сроки разные 
     all_years_lp = [p["years"] for p in st.session_state.projects]
     years_differ = len(set(all_years_lp)) > 1
 
@@ -1013,7 +1006,7 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
 
     if run_lp:
 
-        # ── Фильтрация кандидатов ─────────────
+        #  Фильтрация кандидатов 
         candidates = [
             r for r in results_lp
             if (not only_positive or r["npv"] > 0)
@@ -1026,7 +1019,7 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
             )
             st.stop()
 
-        # ── Решение задачи ILP через PuLP ─────
+        #Решение задачи через PuLP 
         prob = pulp.LpProblem("OptimalPortfolio", pulp.LpMaximize)
 
         # Бинарные переменные x_i
@@ -1086,12 +1079,12 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
                     f"является кандидатом — ограничение взаимоисключения не применяется."
                 )
 
-        # Решаем (тихий режим)
+        # Решаем тихий режим
         solver = pulp.PULP_CBC_CMD(msg=False)
         status = prob.solve(solver)
         status_str = pulp.LpStatus[prob.status]
 
-        # ── Результаты ────────────────────────
+        # Результаты 
         st.markdown('<div class="section-header">Результаты оптимизации</div>',
                     unsafe_allow_html=True)
 
@@ -1176,13 +1169,13 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
 
             st.divider()
 
-            # ── Визуализация портфеля ─────────
+            #  Визуализация портфеля 
             st.markdown("#### Структура портфеля")
 
             col_g1, col_g2 = st.columns(2)
 
             with col_g1:
-                # Сравнение NPV: включён / не включён
+                # Сравнение NPV включён или не включён
                 names_all  = [r["name"] for r in results_lp]
                 npv_all    = [r["npv"]  for r in results_lp]
                 in_port    = [r in selected for r in results_lp]
@@ -1223,7 +1216,7 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
                     )
                     st.plotly_chart(fig_pie, use_container_width=True, key="fig_pie")
 
-            # ── Бюджетный график ─────────────
+            #  Бюджетный график 
             st.markdown("#### Использование бюджета")
 
             fig_budget = go.Figure()
@@ -1252,7 +1245,7 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
             )
             st.plotly_chart(fig_budget, use_container_width=True, key="fig_budget")
 
-            # ── Формальная запись задачи ──────
+            # Формальная запись задачи 
             st.markdown('<div class="section-header">Формальная запись решённой задачи</div>',
                         unsafe_allow_html=True)
 
@@ -1306,7 +1299,7 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
                 unsafe_allow_html=True
             )
 
-            # ── Вывод ─────────────────────────
+            # Вывод 
             if selected:
                 if use_eaa:
                     obj_str = f"суммарный EAA = {_n(total_eaa, 0)} Р/год"
@@ -1336,9 +1329,9 @@ $$\\max \\sum_{i=1}^{n} NPV_i \\cdot x_i$$
             )
 
 
-# ═════════════════════════════════════════════
-# ВКЛАДКА 4 — РИСК И ЧУВСТВИТЕЛЬНОСТЬ
-# ═════════════════════════════════════════════
+# *********************************************
+# 4 вкладка риск и чувствительность
+# *********************************************
 with tab4:
     if not st.session_state.calculated or not st.session_state.projects:
         st.info("Сначала добавьте проекты и нажмите «Рассчитать» на вкладке ввода.")
@@ -1352,7 +1345,7 @@ with tab4:
         "Если NPV резко меняется при небольшом отклонении — проект **высокорисковый**."
     )
 
-    # ── Выбор проекта ─────────────────────────
+    #Выбор проекта 
     project_names = [r["name"] for r in results_r]
     sel_name = st.selectbox("Выберите проект для анализа", project_names)
     sel_r    = next(r for r in results_r if r["name"] == sel_name)
@@ -1360,9 +1353,9 @@ with tab4:
 
     st.divider()
 
-    # ══════════════════════════════════════════
-    # БЛОК 1 — АНАЛИЗ ЧУВСТВИТЕЛЬНОСТИ
-    # ══════════════════════════════════════════
+    # *******************************************
+    # 1 анализ чувствительности
+    # *******************************************
     st.markdown('<div class="section-header">1. Анализ чувствительности NPV</div>',
                 unsafe_allow_html=True)
 
@@ -1394,7 +1387,7 @@ with tab4:
             npv_series.append(calc_npv(cfs_mod, p_mod["invest"], p_mod["rate"]))
         sens_data[label] = npv_series
 
-    # ── Таблица эластичности NPV ──────────────
+    # Таблица эластичности NPV 
     st.markdown("**Эластичность NPV по каждому параметру**")
     st.caption(
         "Чем выше |эластичность|, тем сильнее NPV реагирует на изменение параметра. "
@@ -1415,7 +1408,7 @@ with tab4:
         else:
             elasticity = float("nan")
 
-        # Критичный параметр: при каком отклонении NPV уходит в 0?
+        # при каком отклонении NPV уходит в 0?
         critical = None
         for dev in range(1, 201):
             p_test = dict(sel_p)
@@ -1460,9 +1453,9 @@ with tab4:
 
     st.divider()
 
-    # ══════════════════════════════════════════
-    # БЛОК 2 — СЦЕНАРНЫЙ АНАЛИЗ
-    # ══════════════════════════════════════════
+    # *******************************************
+    # 2 сценарный анализ
+    # *******************************************
     st.markdown('<div class="section-header">2. Сценарный анализ</div>',
                 unsafe_allow_html=True)
     st.markdown(
@@ -1564,9 +1557,9 @@ with tab4:
 
     st.divider()
 
-    # ══════════════════════════════════════════
-    # БЛОК 3 — ВЕРОЯТНОСТНЫЙ АНАЛИЗ (Монте-Карло)
-    # ══════════════════════════════════════════
+    # *****************************************
+    # 3 вероятностный анализ Монте-Карло
+    # *****************************************
     st.markdown('<div class="section-header">3. Вероятностный анализ (метод Монте-Карло)</div>',
                 unsafe_allow_html=True)
     st.markdown(
@@ -1594,7 +1587,7 @@ with tab4:
         random.seed(42)
 
         def rand_normal(mean, std_pct):
-            """Случайная величина: нормальное распределение."""
+            #Случайная величина: нормальное распределение
             sigma = mean * std_pct / 100
             # Box-Muller
             u1 = max(random.random(), 1e-10)
@@ -1619,7 +1612,7 @@ with tab4:
         npv_5pct    = npv_arr[int(n * 0.05)]
         npv_95pct   = npv_arr[int(n * 0.95)]
 
-        # Метрики
+        # статистика
         mc1, mc2, mc3, mc4, mc5 = st.columns(5)
         mc1.metric("Среднее NPV",    f"{_n(mean_npv, 0)} Р")
         mc2.metric("Ст. отклонение", f"{_n(std_npv, 0)} Р")
@@ -1629,7 +1622,7 @@ with tab4:
         mc5.metric("90% интервал — до", f"{_n(npv_95pct, 0)} Р")
 
         # Гистограмма
-        # Разбиваем на 40 бинов вручную (без numpy)
+        # Разбиваем на 40 бинов вручную 
         n_bins   = 40
         min_val  = npv_arr[0]
         max_val  = npv_arr[-1]
@@ -1701,9 +1694,9 @@ with tab4:
 
     st.divider()
 
-    # ══════════════════════════════════════════
-    # БЛОК 4 — СРАВНЕНИЕ РИСКОВ ВСЕХ ПРОЕКТОВ
-    # ══════════════════════════════════════════
+    # ******************************************
+    # 4 сравнение рисков проектов
+    # ******************************************
     st.markdown('<div class="section-header">4. Сравнение устойчивости всех проектов</div>',
                 unsafe_allow_html=True)
     st.markdown(
